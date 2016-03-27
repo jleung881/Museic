@@ -1,6 +1,8 @@
 package com.example.justin.museic;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
@@ -12,8 +14,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.thalmic.myo.AbstractDeviceListener;
+import com.thalmic.myo.DeviceListener;
+import com.thalmic.myo.Hub;
+import com.thalmic.myo.Myo;
 
 import org.w3c.dom.Text;
 
@@ -24,6 +33,20 @@ import java.io.File;
 public class MainActivity extends AppCompatActivity {
     ListView lv;
     String[] items;
+    Button sync;
+    TextView connect;
+
+    public BluetoothAdapter mBluetoothAdapter;
+    public MainActivity me;
+
+    private DeviceListener listener = new AbstractDeviceListener() {
+        @Override
+        public void onConnect(Myo myo, long timestamp) {
+            connect = (TextView) findViewById(R.id.connect);
+            connect.setTextColor(Color.GREEN);
+            myo.unlock(Myo.UnlockType.HOLD);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +54,30 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         lv = (ListView) findViewById(R.id.lvPlaylist);
+        sync = (Button) findViewById(R.id.sync);
+        me = this;
+        final Hub hub = Hub.getInstance();
+        if (!hub.init(this, getPackageName())){
+            Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT);
+            finish();
+            return;
+        }
+        hub.setMyoAttachAllowance(1);
+        hub.addListener(listener);
+
+        sync.setOnClickListener(new ButtonListener(){
+            @Override
+            public void onClick(View v){
+                mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if(!mBluetoothAdapter.isEnabled()){
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent,1);
+                }
+                hub.attachToAdjacentMyo();
+
+            }
+        });
+
 
         final ArrayList<File> mySongs = findSongs(Environment.getExternalStorageDirectory());
         items = new String[mySongs.size()];
@@ -90,4 +137,14 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+}
+abstract class ButtonListener implements View.OnClickListener{
+
+    public ButtonListener(){
+
+    }
+
+    @Override
+    public abstract void onClick(View v);
+
 }

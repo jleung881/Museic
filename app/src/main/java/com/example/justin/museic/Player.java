@@ -1,7 +1,9 @@
 package com.example.justin.museic;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.media.Image;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -13,13 +15,21 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.thalmic.myo.AbstractDeviceListener;
+import com.thalmic.myo.DeviceListener;
+import com.thalmic.myo.Hub;
+import com.thalmic.myo.Myo;
+import com.thalmic.myo.Pose;
 
 import java.io.File;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class Player extends AppCompatActivity implements View.OnClickListener{
     static MediaPlayer mp;
@@ -30,9 +40,38 @@ public class Player extends AppCompatActivity implements View.OnClickListener{
     Uri u;
     Thread updateSeekBar;
     ImageView albumArt;
+    TextView textView2;
+    Button sync;
 
     SeekBar sb;
     Button pause, ff, next, fb, previous, like, dislike;
+
+    public BluetoothAdapter mBluetoothAdapter;
+    public Player me;
+
+    private DeviceListener listener = new AbstractDeviceListener(){
+
+        @Override
+        public void onConnect(Myo myo, long timestamp){
+            textView2.setTextColor(Color.GREEN);
+            myo.unlock(Myo.UnlockType.HOLD);
+        }
+
+        @Override
+        public void onPose(Myo myo, long timestamp, Pose pose){
+            textView2 = (TextView) findViewById(R.id.textView2);
+            switch (pose){
+                case FIST:
+                    dislike.setTextColor(Color.RED);
+                    textView2.setText("FIST");
+                    break;
+                case FINGERS_SPREAD:
+                    like.setTextColor(Color.GREEN);
+                    textView2.setText("HAND");
+                    break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +86,7 @@ public class Player extends AppCompatActivity implements View.OnClickListener{
         previous = (Button) findViewById(R.id.previous);
         like = (Button) findViewById(R.id.like);
         dislike = (Button) findViewById(R.id.dislike);
+        sync = (Button) findViewById(R.id.sync);
 
         pause.setOnClickListener(this);
         ff.setOnClickListener(this);
@@ -56,6 +96,29 @@ public class Player extends AppCompatActivity implements View.OnClickListener{
         like.setOnClickListener(this);
         dislike.setOnClickListener(this);
 
+        final Hub hub = Hub.getInstance();
+        if (!hub.init(this, getPackageName())){
+            Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT);
+            finish();
+            return;
+        }
+        hub.setMyoAttachAllowance(1);
+        hub.addListener(listener);
+
+        sync.setOnClickListener(new ButtonListener() {
+            @Override
+            public void onClick(View v) {
+                mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, 1);
+                }
+                hub.attachToAdjacentMyo();
+
+            }
+        });
+
+
         sb = (SeekBar) findViewById(R.id.sb);
         updateSeekBar = new Thread(){
             @Override
@@ -64,7 +127,7 @@ public class Player extends AppCompatActivity implements View.OnClickListener{
                 int currentPosition = 0;
                 while(currentPosition < totalDuration){
                     try {
-                        sleep(500);
+                        sleep(5000);
                         if (mp.isPlaying())
                             currentPosition = mp.getCurrentPosition();
                         sb.setProgress(currentPosition);
@@ -208,6 +271,8 @@ public class Player extends AppCompatActivity implements View.OnClickListener{
             case R.id.dislike:
                 mySongs.remove(mySongs.get(position));
                 Toast.makeText(Player.this,mySongs.get(position).toString(), Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.sync:
                 break;
         }
     }
