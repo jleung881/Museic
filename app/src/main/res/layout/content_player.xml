@@ -58,4 +58,31 @@
         android:layout_below="@+id/sb"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/albumArt"
+        android:layout_centerHorizontal="true"
+        android:layout_centerInParent="true"
+        android:src="@drawable/default_album_art" />
+
+    <Button
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="Like"
+        android:id="@+id/like"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@+id/pause"
+        android:layout_toEndOf="@+id/pause" />
+
+    <Button
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="Dislike"
+        android:id="@+id/dislike"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
 </RelativeLayout>
